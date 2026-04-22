@@ -4,14 +4,19 @@ def identificar_nome_coluna(df):
     scores = {}
 
     for col in df.columns:
-        valores = df[col].astype(str)
+        valores = df[col]
 
-        text_count = valores.apply(lambda x: any(c.isalpha() for c in x)).sum()
+        text_count = valores.apply(
+            lambda x: any(c.isalpha() for c in str(x)) if pd.notna(x) else False
+        ).sum()
 
         scores[col] = text_count
-        nome_col = max(scores, key=scores.get)
 
-        return nome_col
+    if not scores:
+        raise ValueError("Não foi possível identificar a coluna de nome.")
+
+    nome_col = max(scores, key=scores.get)
+    return nome_col
 
 def identificar_colunas(df):
     

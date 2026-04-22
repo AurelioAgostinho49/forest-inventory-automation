@@ -4,8 +4,7 @@ from core.transformations import calcular_cap, calcular_dap
 from core.validators import limpar_linhas_vazias
 
 def processar_aba(df, numero_parcela):
-    
-    limpar_linhas_vazias(df)
+    df = limpar_linhas_vazias(df).copy()
 
     cap_col, alt_col = identificar_colunas(df)
     nome_col = identificar_nome_coluna(df)
@@ -27,7 +26,7 @@ def processar_arquivo(arquivo):
     erros = []
 
     for i, aba in enumerate(xls.sheet_names):
-        df = pd.read_excel(xls, sheet_name=aba)
+        df = pd.read_excel(xls, sheet_name=aba, header=None)
 
         if df.empty:
             continue
