@@ -174,7 +174,9 @@ if arquivo:
         try:
             resultado_kml = processar_coordenada_arquivo_excel(BytesIO(arquivo_bytes))
             st.session_state["resultado_kml"] = resultado_kml
-            st.success(f"Coordenada encontrada na aba '{resultado_kml['aba']}'.")
+            st.success(
+                f"{resultado_kml['total_pontos']} coordenada(s) válida(s) incluída(s) no KML."
+            )
         except ValueError as exc:
             st.session_state.pop("resultado_kml", None)
             st.error(str(exc))
@@ -182,14 +184,19 @@ if arquivo:
     resultado_kml = st.session_state.get("resultado_kml")
 
     if resultado_kml:
-        st.write(f"Origem detectada: {resultado_kml['origem']}")
-        st.write(f"Coluna detectada: {resultado_kml['coluna']}")
-        st.write(f"Coordenada bruta: {resultado_kml['coordenada_bruta']}")
-        st.write(f"Coordenada normalizada: {resultado_kml['coordenada']}")
-        st.write(
-            f"Latitude/Longitude: {resultado_kml['latitude']:.6f}, "
-            f"{resultado_kml['longitude']:.6f}"
-        )
+        for ponto in resultado_kml["pontos"]:
+            st.write(
+                f"{ponto['nome_ponto']} ({ponto['aba']}): "
+                f"{ponto['coordenada']} -> "
+                f"{ponto['latitude']:.6f}, {ponto['longitude']:.6f}"
+            )
+
+        for parcela_invalida in resultado_kml["parcelas_invalidas"]:
+            st.warning(
+                f"A coordenada da parcela {parcela_invalida['parcela']} "
+                f"({parcela_invalida['aba']}) está inválida e não foi incluída no KML. "
+                f"Motivo: {parcela_invalida['motivo']}"
+            )
 
         caminho_kml = Path(resultado_kml["arquivo_kml"])
         if caminho_kml.exists():

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2" xmlns:gx="http://www.google.com/kml/ext/2.2">
+    <Document id="1">
+        <Placemark id="3">
+            <name>P1</name>
+            <description>Parcela: P1
+Coordenada: 0605267/8135103
+Latitude: -16.865116
+Longitude: -44.011796</description>
+            <Point id="2">
+                <coordinates>-44.01179558551846,-16.86511617983493,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="5">
+            <name>P2</name>
+            <description>Parcela: P2
+Coordenada: 0605302/8135189
+Latitude: -16.864337
+Longitude: -44.011471</description>
+            <Point id="4">
+                <coordinates>-44.011471096021275,-16.86433730137567,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="7">
+            <name>P3</name>
+            <description>Parcela: P3
+Coordenada: 0605250/8135194
+Latitude: -16.864294
+Longitude: -44.011959</description>
+            <Point id="6">
+                <coordinates>-44.01195943124058,-16.864294461868685,0.0</coordinates>
+            </Point>
+        </Placemark>
+        <Placemark id="9">
+            <name>P4</name>
+            <description>Parcela: P4
+Coordenada: 0605234/8135136
+Latitude: -16.864819
+Longitude: -44.012107</description>
+            <Point id="8">
+                <coordinates>-44.01210689245631,-16.86481940775281,0.0</coordinates>
+            </Point>
+        </Placemark>
+    </Document>
+</kml>

@@ -206,7 +206,41 @@ def gerar_kml(lat: float, lon: float, nome: str = "Parcela") -> str:
         raise ValueError("Erro ao gerar o arquivo KML.") from exc
 
 
-def processar_coordenada_auto(df: pd.DataFrame) -> dict[str, Any]:
+def gerar_kml_multiplos_pontos(pontos: list[dict[str, Any]], nome_arquivo: str = "parcelas") -> str:
+    try:
+        if not pontos:
+            raise ValueError("Nenhum ponto válido foi informado para gerar o KML.")
+
+        OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+        caminho_arquivo = OUTPUT_DIR / _gerar_nome_arquivo(nome_arquivo)
+        kml = simplekml.Kml()
+
+        for ponto_info in pontos:
+            ponto = kml.newpoint(
+                name=ponto_info["nome_ponto"],
+                coords=[(ponto_info["longitude"], ponto_info["latitude"])],
+            )
+            ponto.description = (
+                f"Parcela: {ponto_info['nome_ponto']}\n"
+                f"Coordenada: {ponto_info['coordenada']}\n"
+                f"Latitude: {ponto_info['latitude']:.6f}\n"
+                f"Longitude: {ponto_info['longitude']:.6f}"
+            )
+
+        kml.save(str(caminho_arquivo))
+        return str(caminho_arquivo)
+
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Erro ao gerar o arquivo KML com múltiplos pontos.") from exc
+
+
+def _extrair_ponto_coordenada_auto(
+    df: pd.DataFrame,
+    nome_ponto: str = "Parcela",
+) -> dict[str, Any]:
     try:
         if df is None or df.empty:
             raise ValueError("A planilha está vazia e não possui coordenadas para processar.")
@@ -232,14 +266,6 @@ def processar_coordenada_auto(df: pd.DataFrame) -> dict[str, Any]:
                 erros.append(f"{candidato['origem']} ({coordenada_bruta}): {exc}")
                 continue
 
-            nome_ponto = "Parcela"
-            if "Parcela" in df.columns:
-                parcelas = df["Parcela"].dropna()
-                if not parcelas.empty:
-                    nome_ponto = f"Parcela {parcelas.iloc[0]}"
-
-            caminho_kml = gerar_kml(lat, lon, nome=nome_ponto)
-
             return {
                 "coluna": _rotulo_coluna(coluna),
                 "origem": candidato["origem"],
@@ -249,7 +275,6 @@ def processar_coordenada_auto(df: pd.DataFrame) -> dict[str, Any]:
                 "northing": northing,
                 "latitude": lat,
                 "longitude": lon,
-                "arquivo_kml": caminho_kml,
                 "nome_ponto": nome_ponto,
             }
 
@@ -264,26 +289,65 @@ def processar_coordenada_auto(df: pd.DataFrame) -> dict[str, Any]:
         raise ValueError("Não foi possível processar a coordenada automaticamente.") from exc
 
 
+def processar_coordenada_auto(df: pd.DataFrame) -> dict[str, Any]:
+    try:
+        resultado = _extrair_ponto_coordenada_auto(df)
+        resultado["arquivo_kml"] = gerar_kml(
+            resultado["latitude"],
+            resultado["longitude"],
+            nome=resultado["nome_ponto"],
+        )
+        return resultado
+
+    except ValueError:
+        raise
+    except Exception as exc:
+        raise ValueError("Não foi possível processar a coordenada automaticamente.") from exc
+
+
 def processar_coordenada_arquivo_excel(arquivo: BytesIO) -> dict[str, Any]:
     try:
         xls = pd.ExcelFile(arquivo)
         erros_por_aba: list[str] = []
+        pontos_validos: list[dict[str, Any]] = []
+        parcelas_invalidas: list[dict[str, str]] = []
 
-        for aba in xls.sheet_names:
+        for indice, aba in enumerate(xls.sheet_names, start=1):
             df = pd.read_excel(xls, sheet_name=aba, header=None)
+            nome_ponto = f"P{indice}"
+
             if df.empty:
-                erros_por_aba.append(f"{aba}: aba vazia.")
+                mensagem = "aba vazia."
+                erros_por_aba.append(f"{aba}: {mensagem}")
+                parcelas_invalidas.append(
+                    {"parcela": nome_ponto, "aba": aba, "motivo": mensagem}
+                )
                 continue
 
             try:
-                resultado = processar_coordenada_auto(df)
+                resultado = _extrair_ponto_coordenada_auto(df, nome_ponto=nome_ponto)
                 resultado["aba"] = aba
-                return resultado
+                pontos_validos.append(resultado)
             except ValueError as exc:
-                erros_por_aba.append(f"{aba}: {exc}")
+                mensagem = str(exc)
+                erros_por_aba.append(f"{aba}: {mensagem}")
+                parcelas_invalidas.append(
+                    {"parcela": nome_ponto, "aba": aba, "motivo": mensagem}
+                )
 
-        detalhes = " ".join(erros_por_aba) if erros_por_aba else "Nenhuma aba foi lida."
-        raise ValueError(f"Nenhuma coordenada UTM válida foi encontrada na planilha. Detalhes: {detalhes}")
+        if not pontos_validos:
+            detalhes = " ".join(erros_por_aba) if erros_por_aba else "Nenhuma aba foi lida."
+            raise ValueError(f"Nenhuma coordenada UTM válida foi encontrada na planilha. Detalhes: {detalhes}")
+
+        arquivo_kml = gerar_kml_multiplos_pontos(pontos_validos, nome_arquivo="parcelas")
+
+        return {
+            "arquivo_kml": arquivo_kml,
+            "pontos": pontos_validos,
+            "parcelas_invalidas": parcelas_invalidas,
+            "total_pontos": len(pontos_validos),
+            "total_invalidas": len(parcelas_invalidas),
+        }
 
     except ValueError:
         raise
